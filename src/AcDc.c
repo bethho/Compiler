@@ -459,8 +459,10 @@ void convertType( Expression * old, DataType type )
         Expression *tmp = (Expression *)malloc( sizeof(Expression) );
         if(old->v.type == Identifier)
             printf("convert to float %c \n",old->v.val.id);
-        else
+        else if(old->v.type == IntConst)
             printf("convert to float %d \n", old->v.val.ivalue);
+        else
+            printf("convert to float %d \n", old->v.val.op);
         tmp->v = old->v;
         tmp->leftOperand = old->leftOperand;
         tmp->rightOperand = old->rightOperand;
@@ -470,7 +472,7 @@ void convertType( Expression * old, DataType type )
         v.type = IntToFloatConvertNode;
         v.val.op = IntToFloatConvert;
         old->v = v;
-        old->type = Int;
+        old->type = Float;
         old->leftOperand = tmp;
         old->rightOperand = NULL;
     }
