@@ -26,7 +26,7 @@ int main( int argc, char *argv[] )
             exit(2);
         }
         else{
-            program = parser(source);
+            program = parser(source, &vartab);
             fclose(source);
             symtab = build(program);
             check(&program, &symtab);
@@ -163,7 +163,7 @@ char findId(VariableTable *table, char c[])
     return id;
 }
 
-Declaration parseDeclaration( FILE *source, Token token )
+Declaration parseDeclaration( FILE *source, Token token, VariableTable *table )
 {
     Token token2;
     switch(token.type){
@@ -176,14 +176,14 @@ Declaration parseDeclaration( FILE *source, Token token )
                 printf("Syntax Error: %s cannot be used as id\n", token2.tok);
                 exit(1);
             }
-            return makeDeclarationNode( token, token2 );
+            return makeDeclarationNode( token, token2, table );
         default:
             printf("Syntax Error: Expect Declaration %s\n", token.tok);
             exit(1);
     }
 }
 
-Declarations *parseDeclarations( FILE *source )
+Declarations *parseDeclarations( FILE *source, VariableTable *table )
 {
     Token token = scanner(source);
     Declaration decl;
@@ -191,8 +191,8 @@ Declarations *parseDeclarations( FILE *source )
     switch(token.type){
         case FloatDeclaration:
         case IntegerDeclaration:
-            decl = parseDeclaration(source, token);
-            decls = parseDeclarations(source);
+            decl = parseDeclaration(source, token, table);
+            decls = parseDeclarations(source, table);
             return makeDeclarationTree( decl, decls );
         case PrintOp:
         case Alphabet:
@@ -206,16 +206,15 @@ Declarations *parseDeclarations( FILE *source )
     }
 }
 
-Expression *parseValue( FILE *source )
+Expression *parseValue( FILE *source, VariableTable *table )
 {
     Token token = scanner(source);
     Expression *value = (Expression *)malloc( sizeof(Expression) );
     value->leftOperand = value->rightOperand = NULL;
-
     switch(token.type){
         case Alphabet:
             (value->v).type = Identifier;
-            (value->v).val.id = token.tok[0];
+            (value->v).val.id = findId(table, token.tok);
             break;
         case IntValue:
             (value->v).type = IntConst;
@@ -233,7 +232,7 @@ Expression *parseValue( FILE *source )
     return value;
 }
 
-Expression *parseExpressionTail( FILE *source, Expression *lvalue )
+Expression *parseExpressionTail( FILE *source, Expression *lvalue, VariableTable *table )
 {
     Token token = scanner(source);
     Expression *expr;
@@ -244,22 +243,22 @@ Expression *parseExpressionTail( FILE *source, Expression *lvalue )
             (expr->v).type = PlusNode;
             (expr->v).val.op = Plus;
             expr->leftOperand = lvalue;
-            expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, expr);
+            expr->rightOperand = parseValue(source, table);
+            return parseExpressionTail(source, expr, table);
         case MinusOp:
             expr = (Expression *)malloc( sizeof(Expression) );
             (expr->v).type = MinusNode;
             (expr->v).val.op = Minus;
             expr->leftOperand = lvalue;
-            expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, expr);
+            expr->rightOperand = parseValue(source, table);
+            return parseExpressionTail(source, expr, table);
         // the priority of mul and div is higher than add and minus, but if met mul and div is left to right 
         case MulOp: 
         case DivOp:
             break;
         case Alphabet:
         case PrintOp:
-            ungetc(token.tok[0], source);
+            fseek(source, -strlen(token.tok), SEEK_CUR);
             return lvalue;
         case EOFsymbol:
             return lvalue;
@@ -281,19 +280,19 @@ Expression *parseExpressionTail( FILE *source, Expression *lvalue )
     if ((lvalue->v).type == MulNode || (lvalue->v).type == DivNode)
     {
         expr->leftOperand = lvalue;
-        expr->rightOperand = parseValue(source);
-        return parseExpressionTail(source, expr);
+        expr->rightOperand = parseValue(source, table);
+        return parseExpressionTail(source, expr, table);
     }
     else
     {
         expr->leftOperand = lvalue->rightOperand;
-        expr->rightOperand = parseValue(source);
+        expr->rightOperand = parseValue(source, table);
         lvalue->rightOperand = expr;
-        return parseExpressionTail(source, lvalue);
+        return parseExpressionTail(source, lvalue, table);
     }
 }
 
-Expression *parseExpression( FILE *source, Expression *lvalue )
+Expression *parseExpression( FILE *source, Expression *lvalue, VariableTable *table )
 {
     Token token = scanner(source);
     Expression *expr;
@@ -304,32 +303,33 @@ Expression *parseExpression( FILE *source, Expression *lvalue )
             (expr->v).type = PlusNode;
             (expr->v).val.op = Plus;
             expr->leftOperand = lvalue;
-            expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, expr);
+            expr->rightOperand = parseValue(source, table);
+            return parseExpressionTail(source, expr, table);
         case MinusOp:
             expr = (Expression *)malloc( sizeof(Expression) );
             (expr->v).type = MinusNode;
             (expr->v).val.op = Minus;
             expr->leftOperand = lvalue;
-            expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, expr);
+            expr->rightOperand = parseValue(source, table);
+            return parseExpressionTail(source, expr, table);
         case MulOp:
             expr = (Expression *)malloc( sizeof(Expression) );
             (expr->v).type = MulNode;
             (expr->v).val.op = Mul;
             expr->leftOperand = lvalue;
-            expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, expr);
+            expr->rightOperand = parseValue(source, table);
+            return parseExpressionTail(source, expr, table);
         case DivOp:
             expr = (Expression *)malloc( sizeof(Expression) );
             (expr->v).type = DivNode;
             (expr->v).val.op = Div;
             expr->leftOperand = lvalue;
-            expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, expr);
+            expr->rightOperand = parseValue(source, table);
+            return parseExpressionTail(source, expr, table);
         case Alphabet:
         case PrintOp:
-            ungetc(token.tok[0], source);
+            // ungetc(token.tok[0], source);
+            fseek(source, -strlen(token.tok), SEEK_CUR);
             return NULL;
         case EOFsymbol:
             return NULL;
@@ -339,7 +339,7 @@ Expression *parseExpression( FILE *source, Expression *lvalue )
     }
 }
 
-Statement parseStatement( FILE *source, Token token )
+Statement parseStatement( FILE *source, Token token, VariableTable *table )
 {
     Token next_token;
     Expression *value, *expr;
@@ -348,9 +348,9 @@ Statement parseStatement( FILE *source, Token token )
         case Alphabet:
             next_token = scanner(source);
             if(next_token.type == AssignmentOp){
-                value = parseValue(source);
-                expr = parseExpression(source, value);
-                return makeAssignmentNode(token.tok[0], value, expr);
+                value = parseValue(source, table);
+                expr = parseExpression(source, value, table);
+                return makeAssignmentNode(findId(table, token.tok), value, expr);
             }
             else{
                 printf("Syntax Error: Expect an assignment op %s\n", next_token.tok);
@@ -371,7 +371,7 @@ Statement parseStatement( FILE *source, Token token )
     }
 }
 
-Statements *parseStatements( FILE * source )
+Statements *parseStatements( FILE * source, VariableTable *table )
 {
 
     Token token = scanner(source);
@@ -381,8 +381,8 @@ Statements *parseStatements( FILE * source )
     switch(token.type){
         case Alphabet:
         case PrintOp:
-            stmt = parseStatement(source, token);
-            stmts = parseStatements(source);
+            stmt = parseStatement(source, token, table);
+            stmts = parseStatements(source, table);
             return makeStatementTree(stmt , stmts);
         case EOFsymbol:
             return NULL;
@@ -396,9 +396,10 @@ Statements *parseStatements( FILE * source )
 /*********************************************************************
   Build AST
  **********************************************************************/
-Declaration makeDeclarationNode( Token declare_type, Token identifier )
+Declaration makeDeclarationNode( Token declare_type, Token identifier, VariableTable *table )
 {
     Declaration tree_node;
+    char id;
 
     switch(declare_type.type){
         case FloatDeclaration:
@@ -410,7 +411,8 @@ Declaration makeDeclarationNode( Token declare_type, Token identifier )
         default:
             break;
     }
-    tree_node.name = identifier.tok[0];
+    id = findId(table, identifier.tok);
+    tree_node.name = id;
 
     return tree_node;
 }
@@ -460,12 +462,12 @@ Statements *makeStatementTree( Statement stmt, Statements *stmts )
 }
 
 /* parser */
-Program parser( FILE *source )
+Program parser( FILE *source, VariableTable *table )
 {
     Program program;
 
-    program.declarations = parseDeclarations(source);
-    program.statements = parseStatements(source);
+    program.declarations = parseDeclarations(source, table);
+    program.statements = parseStatements(source, table);
 
     return program;
 }
@@ -834,13 +836,13 @@ void print_expr(Expression *expr)
     }
 }
 
-void test_parser( FILE *source )
+void test_parser( FILE *source, VariableTable *table  )
 {
     Declarations *decls;
     Statements *stmts;
     Declaration decl;
     Statement stmt;
-    Program program = parser(source);
+    Program program = parser(source, table);
 
     decls = program.declarations;
 

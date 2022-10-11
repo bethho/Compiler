@@ -122,19 +122,19 @@ typedef struct VariableTable{
 
 Token getNumericToken( FILE *source, char c );
 Token scanner( FILE *source );
-Declaration makeDeclarationNode( Token declare_type, Token identifier );
+Declaration makeDeclarationNode( Token declare_type, Token identifier, VariableTable *table );
 Declarations *makeDeclarationTree( Declaration decl, Declarations *decls );
-Declaration parseDeclaration( FILE *source, Token token );
-Declarations *parseDeclarations( FILE *source );
-Expression *parseValue( FILE *source );
-Expression *parseExpressionTail( FILE *source, Expression *lvalue );
-Expression *parseExpression( FILE *source, Expression *lvalue );
+Declaration parseDeclaration( FILE *source, Token token, VariableTable *table );
+Declarations *parseDeclarations( FILE *source, VariableTable *table );
+Expression *parseValue( FILE *source, VariableTable *table );
+Expression *parseExpressionTail( FILE *source, Expression *lvalue, VariableTable *table );
+Expression *parseExpression( FILE *source, Expression *lvalue, VariableTable *table );
 Statement makeAssignmentNode( char id, Expression *v, Expression *expr_tail );
 Statement makePrintNode( char id );
 Statements *makeStatementTree( Statement stmt, Statements *stmts );
-Statement parseStatement( FILE *source, Token token );
-Statements *parseStatements( FILE * source );
-Program parser( FILE *source );
+Statement parseStatement( FILE *source, Token token, VariableTable *table );
+Statements *parseStatements( FILE * source, VariableTable *table );
+Program parser( FILE *source, VariableTable *table );
 void InitializeTable( SymbolTable *table );
 void InitializeVariableTable( VariableTable *table );
 void add_table( SymbolTable *table, char c, DataType t );
@@ -150,6 +150,6 @@ void fprint_expr( FILE *target, Expression *expr );
 void gencode( Program prog, FILE * target );
 
 void print_expr( Expression *expr );
-void test_parser( FILE *source );
+void test_parser( FILE *source, VariableTable *table );
 
 #endif // HEADER_H_INCLUDED
