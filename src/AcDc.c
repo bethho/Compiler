@@ -569,9 +569,77 @@ void checkexpression( Expression * expr, SymbolTable * table )
         checkexpression(right, table);
 
         DataType type = generalize(left, right);
+        if ((left->v.type == IntConst || left->v.type == FloatConst ) && (right->v.type == IntConst || right->v.type == FloatConst ))
+        {
+            if (type == Int)
+            {
+                switch (expr->v.type)
+                {
+                case PlusNode:
+                    expr->v.val.ivalue = left->v.val.ivalue + right->v.val.ivalue;
+                    break;
+                case MinusNode:
+                    expr->v.val.ivalue = left->v.val.ivalue - right->v.val.ivalue;
+                    break;
+                case MulNode:
+                    expr->v.val.ivalue = left->v.val.ivalue * right->v.val.ivalue;
+                    break;
+                case DivNode:
+                    expr->v.val.ivalue = left->v.val.ivalue / right->v.val.ivalue;
+                    break;
+                default:
+                    printf("express is not operate\n");
+                    break;
+                }
+                expr->type = type;
+                expr->v.type = IntConst;
+                expr->leftOperand = NULL;
+                expr->rightOperand = NULL;
+            }
+            else
+            {
+                expr->type = type;
+                expr->v.type = FloatConst;
+                float a;
+                float b;
+                if(left->v.type == IntConst)
+                {   a = left->v.val.ivalue;}
+                else
+                {   a = left->v.val.fvalue;}
+                if(right->v.type == IntConst)
+                {   b = right->v.val.ivalue;}
+                else
+                {   b = right->v.val.fvalue;}
+                switch (expr->v.type)
+                {
+                case PlusNode:
+                    expr->v.val.fvalue = a + b;
+                    break;
+                case MinusNode:
+                    expr->v.val.fvalue = a - b;
+                    break;
+                case MulNode:
+                    expr->v.val.fvalue = a * b;
+                    break;
+                case DivNode:
+                    expr->v.val.fvalue = a / b;
+                    break;
+                default:
+                    printf("express is not operate\n");
+                    break;
+                }
+                expr->type = type;
+                expr->v.type = FloatConst;
+                expr->leftOperand = NULL;
+                expr->rightOperand = NULL;
+            }
+        }
+        else
+        {
         convertType(left, type);//left->type = type;//converto
         convertType(right, type);//right->type = type;//converto
         expr->type = type;
+        }
     }
 }
 
