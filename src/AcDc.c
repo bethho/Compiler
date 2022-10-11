@@ -631,8 +631,6 @@ void checkexpression( Expression * expr, SymbolTable * table )
             }
             else
             {
-                expr->type = type;
-                expr->v.type = FloatConst;
                 float a;
                 float b;
                 if(left->v.type == IntConst)
