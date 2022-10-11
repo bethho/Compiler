@@ -10,6 +10,9 @@ int main( int argc, char *argv[] )
     FILE *source, *target;
     Program program;
     SymbolTable symtab;
+    VariableTable vartab;
+
+    InitializeVariableTable(&vartab);
 
     if( argc == 3){
         source = fopen(argv[1], "r");
@@ -141,6 +144,25 @@ Token scanner( FILE *source )
 /********************************************************
   Parsing
  *********************************************************/
+char findId(VariableTable *table, char c[])
+{
+    int i;
+    char id;
+    for (i = 0; i < table->index; i++)
+    {
+        if (strcmp(table->table[i], c) == 0) break;
+    }
+
+    if (i == table->index)
+    {
+        strcpy(table->table[i], c);
+        table->index++;
+    }
+    
+    id = 'a' + i;
+    return id;
+}
+
 Declaration parseDeclaration( FILE *source, Token token )
 {
     Token token2;
@@ -458,6 +480,15 @@ void InitializeTable( SymbolTable *table )
 
     for(i = 0 ; i < 26; i++)
         table->table[i] = Notype;
+}
+
+void InitializeVariableTable( VariableTable *table )
+{
+    int i;
+    table->index = 0;
+
+    for(i = 0 ; i < 26; i++)
+        strcpy(table->table[i], "");
 }
 
 void add_table( SymbolTable *table, char c, DataType t )

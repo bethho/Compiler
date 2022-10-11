@@ -1,5 +1,7 @@
 #ifndef HEADER_H_INCLUDED
 #define HEADER_H_INCLUDED
+#define MAX_NUM 26
+#define MAX_LENGTH 256
 
 /******************************************************************************************************************************************
     All enumeration literals
@@ -108,8 +110,14 @@ typedef struct Program{
 
 /* For building the symbol table */
 typedef struct SymbolTable{
-    DataType table[26];
+    DataType table[MAX_NUM];
 } SymbolTable;
+
+/* For building the variable table */
+typedef struct VariableTable{
+    int index;
+    char table[MAX_NUM][MAX_LENGTH];
+} VariableTable;
 
 
 Token getNumericToken( FILE *source, char c );
@@ -128,6 +136,7 @@ Statement parseStatement( FILE *source, Token token );
 Statements *parseStatements( FILE * source );
 Program parser( FILE *source );
 void InitializeTable( SymbolTable *table );
+void InitializeVariableTable( VariableTable *table );
 void add_table( SymbolTable *table, char c, DataType t );
 SymbolTable build( Program program );
 void convertType( Expression * old, DataType type );
